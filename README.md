@@ -3,34 +3,52 @@
 # juno-waves_flux_density_calculation
 Routines for calculating the Juno/Waves flux density
 
+# Determination of the calibration gain
 
 To obtain the calibration gain:
-1) You first need to have daily dynamic spectrum:
-	Creation of spdyn_sav data using:
+
+Please run the OBTAIN_CALIBRATION_GAIN.pro routine which will do the following steps: 
+	
+	OBTAIN_CALIBRATION_GAIN,/creation_spdyn_sav,/all_calibration, version=v
+	
+(with v=1 to reproduce the results from the Louis et al., 2021 paper)
+
+1) Creation of spdyn_sav data using:
 	PLOT_SPDYN_SURVEY,yyyydddb
 		-> contains linear and db data: 	rdb or rlin: raw data
 								zdb or zlin: FFT filtered data
 								zdb2 or zlin2: FFT filtered daily background subtract data
 	it will save the daily data under */data_n1>$#years/$#yyyyddd_spdyn_v$#v.sav*
-
-
-2) Then please use the OBTAIN_CALIBRATION_GAIN.pro routine which will do the following steps: 
-	1) Make time series for each frequency. It will used :
+2) Make time series for each frequency. It will used :
 		ALL_TIMESERIES,’all’,delta_t=60,/linear,/noback_subtract
 		it will call MAKE_TIMESERIES and used zlin data (FFT filtered)
 		and save the time series under:
 			juno>calibration>make_timeseries>ALL_linear_noback_subtract>ALL_timeseries_d60_channels_0-109_zlin.sav
-	2) Create a background using:
+3) Create a background using:
 		MAKE_BACKGROUND_PJ. It will call MAKE_BACKGROUND & BACKGROUND
-	3) Subtract background, using:
+4) Subtract background, using:
 		SUBTRACT_BACKGROUND
-	4) Create the time series for calibration, thus containing the ephemeris, using:
+5) Create the time series for calibration, thus containing the ephemeris, using:
 		CALIBRATION_READ,0,109,60,/all,/linear
 			restore,>make_timeseries>ALL_linear_noback_subtract>ALL_timeseries_d60_channels_0-109_zlin.sav
-	5) Select only interval where Dist_Juno > 30 R_Jupiter and abs(Magnetic_latitude)<15°
+6) Select only interval where Dist_Juno > 30 R_Jupiter and abs(Magnetic_latitude)<15°
 		CALIBRATION_WRITE2,60,/all,/linear
-	6) Determination of the calibration gain, using:
+7) Determination of the calibration gain, using:
 		INTERCAL,freq,gain
+
+# Calibrating the data
+
+Please use the CALIBRATION_PROCESS.PRO routine
+	
+	calibration_process,YYYYDDDb, YYYYDDDe,/reso1sec,/create_savefile
+keyword `/create_savefile` needs to be added if you want to calibrate the data of a new day whose saveset has not yet been calculated
+keyword `version=v`(with `v` the number of the version) is 1 by default (Louis et al., 2021 paper)
+
+
+# Creation of cdf calibrated file
+
+To create cdf file of the processed data, please used the `make_cdf_juno_waves_calibrated.py` python routine
+
 # Requirements
 
 Required folder tree structure:
