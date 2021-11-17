@@ -31,3 +31,6 @@ To obtain the calibration gain:
 		CALIBRATION_WRITE2,60,/all,/linear
 	6) Determination of the calibration gain, using:
 		INTERCAL,freq,gain
+# Requirements
+
+idl 8.5
