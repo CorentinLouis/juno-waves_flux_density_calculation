@@ -11,7 +11,7 @@ To obtain the calibration gain:
 		-> contains linear and db data: 	rdb or rlin: raw data
 								zdb or zlin: FFT filtered data
 								zdb2 or zlin2: FFT filtered daily background subtract data
-	it will save the daily data under juno>stage>spdyn_sav_data>yyyyddd.sav
+	it will save the daily data under */data_n1>$#years/$#yyyyddd_spdyn_v$#v.sav*
 
 
 2) Then please use the OBTAIN_CALIBRATION_GAIN.pro routine which will do the following steps: 
