@@ -33,4 +33,9 @@ To obtain the calibration gain:
 		INTERCAL,freq,gain
 # Requirements
 
+Required folder tree structure:
+Data need to be stored in directories following this template: '*../../data_PDS/WAVES_SURVEY/YYYYDOY_ORBIT_##*' with '*##*' the orbit number
+
+
+
 idl 8.5
