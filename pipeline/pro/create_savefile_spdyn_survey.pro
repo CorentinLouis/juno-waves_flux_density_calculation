@@ -88,8 +88,8 @@ if n_elements(data) eq 0 then return
 if min(data[0].flux) eq 0 then begin
   yyyyddd_tmp=yyyydddb
   if strmid((strtrim(yyyydddb-1,2)),4,3) ne '000' then $
-    file_day_before_name = '../../data_n1/spdyn_sav_data'+deltat+'/'+strmid(strtrim(yyyydddb,2),0,4)+'/'+strtrim(long(yyyydddb-1),2)+'_spdyn'+deltat+'.sav' $
-    else file_day_before_name = '../../data_n1/spdyn_sav_data'+deltat+'/'+strtrim(long(strmid(strtrim(yyyydddb,2),0,4))-1,2)+'/'+strtrim(amj_aj(strtrim(fix(yyyydddb/1000.)-1)*10000l+12*100l+31),2)+'_spdyn'+deltat+'.sav'
+    file_day_before_name = '../../data_n1/spdyn_sav_data'+deltat+'/'+strmid(strtrim(yyyydddb,2),0,4)+'/'+strtrim(long(yyyydddb-1),2)+'_spdyn'+deltat+'_v'+version+'.sav' $
+    else file_day_before_name = '../../data_n1/spdyn_sav_data'+deltat+'/'+strtrim(long(strmid(strtrim(yyyydddb,2),0,4))-1,2)+'/'+strtrim(amj_aj(strtrim(fix(yyyydddb/1000.)-1)*10000l+12*100l+31),2)+'_spdyn'+'_v'+version+deltat+'.sav'
   file_day_before = file_search(file_day_before_name)
   if file_day_before[0] eq '' then begin
     print,"No data on previous day: no interpolation.  First element goes to 0"
