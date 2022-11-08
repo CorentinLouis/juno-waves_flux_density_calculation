@@ -66,7 +66,8 @@ end
 
 ; # Initialisation #
 !path=!path+':./IDL_pro_util'
-!path='/Users/serpe/Volumes/kronos/juno/stage/IDL_pro_util:'+!path
+!path='../../stage/IDL_pro_util:'+!path
+!path='../../pro:'+!path
 
 if ~keyword_set(rebin15sec) then deltat='_1sec' else deltat=''
 if ~keyword_set(nharm) then nharm=8. else nharm=nharm
@@ -157,6 +158,8 @@ while (nwnprime eq 1) do begin
   ydb=ydb[1:*,*]
   tt=tt[1:*]
   nt=nt-1
+  tmin = long(min(tt))
+  tmax = long(max(tt))
   wnprime=where(nprime eq nt,nwnprime)
   ;prime_decomp,nt,d,e,nprimes=10000
 endwhile
@@ -171,7 +174,7 @@ zlin=rlin
   
 ; # constructing frequency table for FFT
 ; # if yyyydddb is a periojve, then cut data in 2 hours interval (to avoid fft issues)
-peri=[2016240,2016346,2016347,2017033,2017086,2017139,2017191,2017192,2017244,2017297,2017350,2018038,2018091,2018144,2018196,2018197,2018249,2018250,2018302,2018355,2019043,2019044,2019095,2019096,2019148,2019149,2019150, 2019201,2019202,$
+peri=[2016240,2016346,2016347,2017033,2017086,2017139,2017191,2017192,2017244,2017297,2017350,2018038,2018091,2018144,2018196,2018197,2018249,2018250,2018302,2018355,2019043,2019044,2019095,2019096,2019148,2019149,2019150,$
 2019254,2019255, $
 2019307,2019308, $
 2019360,2019361, $
@@ -191,6 +194,8 @@ peri=[2016240,2016346,2016347,2017033,2017086,2017139,2017191,2017192,2017244,20
 2021333, $
 2022011,2022012, $
 2022055,2022056] ;# up to  PJ40
+
+
 
 if (where(peri eq yyyydddb))[0] ne -1 then begin
   
@@ -370,22 +375,21 @@ if keyword_set(plot_filtering) then endps,filename='select_harmonic_'+strtrim(lo
 ;MAKE_BACKGROUND, zdb,'',b,s
 ;zdb2=zdb
 ;SUBTRACT_BACKGROUND, b,s, -1.5, zdb2
-
 ; # filling intensity and time tables with fill values if nt  ne  86400
 fillval=-1e-31
 fillvaldB=-32767.0
 if nt lt 86400L then begin
   if tmin gt 0 then begin
-   zlin=[fltarr(tmin+1,nf)+fillval,zlin]
-   rlin=[fltarr(tmin+1,nf)+fillval,rlin]
-    zdb =[fltarr(tmin+1,nf)+fillvaldB,zdb]
-    rdb =[fltarr(tmin+1,nf)+fillvaldB,rdb]
+   zlin=[fltarr(tmin,nf)+fillval,zlin]
+   rlin=[fltarr(tmin,nf)+fillval,rlin]
+    zdb =[fltarr(tmin,nf)+fillvaldB,zdb]
+    rdb =[fltarr(tmin,nf)+fillvaldB,rdb]
   endif
-  if tmax lt 86399L then begin
-    zlin=[zlin,fltarr(86400L-tmax,nf)+fillval]
-    rlin=[rlin,fltarr(86400L-tmax,nf)+fillval]
-    zdb =[zdb,fltarr(86400L-tmax,nf)+fillvaldB]
-    rdb =[rdb,fltarr(86400L-tmax,nf)+fillvaldB]
+if tmax lt 86399L then begin
+    zlin=[zlin,fltarr(86399L-tmax,nf)+fillval]
+    rlin=[rlin,fltarr(86399L-tmax,nf)+fillval]
+    zdb =[zdb,fltarr(86399L-tmax,nf)+fillvaldB]
+    rdb =[rdb,fltarr(86399L-tmax,nf)+fillvaldB]
   endif
 endif
 
@@ -413,9 +417,8 @@ if keyword_Set(rebin15sec) then begin
   rdb=rdb_rebin
   zlin=zlin_rebin
   rlin=rlin_rebin
-
-  
   t=rebin(tt/3600.,5760)
+
 ;#  zdb=rebin(zdb(*,*),5760,nf)
 ;#  zlin=rebin(zlin(*,*),5760,nf)
 ;#  rdb=rebin(rdb(*,*),5760,nf)
@@ -444,10 +447,13 @@ endelse
 ;zlin[wn0]=10^((10*zdb[wn0]-zdb_plus)/10.)
 ;#to reuse#
 
+;# sanity check - Are there the same number of time steps in the variable t and the variable zlin?
+if n_elements(zlin[*,0]) ne n_elements(t) then stop,'There are not the same number of time steps in the variable t and the variable zlin'
+
 ;# saving daily spdyn file
 if keyword_set(filetest) then test_filename='test/' else test_filename=''
 if keyword_set(version) then version_name='_v'+string(format='(I02)',version) else version_name=''
-cmd = '../../data_n1/spdyn_sav_data'+deltat+'/'+strmid(strtrim(long(yyyydddb),2),0,4)
+cmd = 'mkdir ../../data_n1/spdyn_sav_data'+deltat+'/'+strmid(strtrim(long(yyyydddb),2),0,4)
 spawn,cmd,resu
 filename='../../data_n1/spdyn_sav_data'+deltat+'/'+strmid(strtrim(long(yyyydddb),2),0,4)+'/'+test_filename+strtrim(long(yyyydddb),2)+'_spdyn'+deltat+version_name+'.sav'
 print,"# Saving file "+filename+" #"
