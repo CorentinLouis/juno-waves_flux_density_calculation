@@ -8,14 +8,17 @@ PRO calibration_process,yyyydddb=yyyydddb,yyyyddde=yyyyddde,norm1AU=norm1AU,reso
 ;# Optionally (norm1AU), correct for 1/R2 dependence to normalize the flux density to a constant distance (this should not be done when studying local wave E-field, for example)
 ;# Optionnaly, ask for 1 seconde resolution (for the sources)
 
-cmd = 'mkdir ../../data_n2'
-spawn,cmd,resu
-
-if keyword_set(version) then version_name='_v'+string(format='(I02)',version) else version_name=''
-!path='../../stage/IDL_pro_util:'+!path
-
 if ~keyword_set(yyyydddb) then yyyydddb=2016100
 if ~keyword_set(yyyyddde) then yyyyddde=2019174
+
+
+if keyword_set(version) then version_name='_v'+string(format='(I02)',version) else version_name=''
+if ~keyword_set(version) then $
+    channelbeg = 16 $
+    else channelbeg = 0
+channelend = 125
+
+
 if ~keyword_set(linear) and ~keyword_set(db) then begin
 	linear=1
 	print,"Calibration will be made using 'linear' process"
@@ -33,14 +36,33 @@ if keyword_Set(norm1AU) then begin
 	e=ephemerides
 	tephem=JULDAY(1,e.day,e.yy,e.hr,e.min,e.sec) - JULDAY(1,0,2016,0,0,0)
 	print,'# Juno ephemeris restored #'
-endif
+	tit1AU='_norm1AU'
+endif else begin
+	tit1AU=''
+endelse
 
+if keyword_Set(reso1sec) then tit1sec='_1sec' else tit1sec=''
 
-; # restore calibration gain
-restore,'../gain/gain_final_'+data_type_treat+'.sav'
+print,"### creating directory if necessary ###"
+cmd = 'mkdir ../../data_n2'
+spawn,cmd,resu
+
+year_dir = indgen(long(yyyyddde/1000)-long(yyyydddb/1000)+1,start=long(yyyydddb/1000))
+for iyear=0,n_elements(year_dir)-1 do begin
+        cmd = 'mkdir ../../data_n2/spdyn_sav_data'+tit1AU+version_name+'/'+strmid(strtrim(year_dir[iyear],2),0,4)
+	spawn,cmd,resu
+endfor
+
+print,"### restoring background ###"
+restore,'../background/background_ALLPJ_z'+data_type_treat+version_name+'.sav'
+
+print,"### restoring calibration gain ###"
+restore,'../gain/gain_final_'+data_type_treat+version_name+'.sav'
 print,'# Calibration gain restored #'
-gain=gain_final
 
+gain=gain_final
+if keyword_set(version) then $
+	gain=[fltarr(16-channelbeg)+gain[0],gain]
 
 nd=aj_t16(yyyyddde)-aj_t16(yyyydddb)+1.
 for k=0L,nd-1L do begin
@@ -50,35 +72,42 @@ for k=0L,nd-1L do begin
 		CREATE_SAVEFILE_SPDYN_SURVEY, yyyyddd,version=version
 
 	;# day without data to exclude of the calibration process
-  	if ~keyword_set(reso1sec) then begin
-  		if ~file_test('../../data_n1/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn.sav') then goto,suite
-  	endif else begin
-  		if ~file_test('../../data_n1/spdyn_sav_data_1sec/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn_1sec.sav') then goto,suite
-  	endelse
+	skip = 0
+	if ~keyword_set(reso1sec) then begin
+		if ~file_test('../../data_n1/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn'+version_name+'.sav') then begin
+			skip = 1
+			goto,suite
+		endif else skip = 0
+	endif else begin
+		if ~file_test('../../data_n1/spdyn_sav_data_1sec/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn_1sec'+version_name+'.sav') then begin
+			skip = 1
+			goto,suite
+		endif else skip = 0
+	endelse
 
 
-  	if ~keyword_set(reso1sec) then begin
+	if ~keyword_set(reso1sec) then begin
 		;# restore data FFT Filterd 
-		;restore,'../../stage/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn.sav'
-		restore,'../../data_n1/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn.sav'
+		restore,'../../data_n1/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn'+version_name+'.sav'
 		print, '# Data Day '+strtrim(long(yyyyddd),2)+' restored #'
 		t2=aj_t16(yyyyddd+t/24.)
 	endif else begin
-		restore,'../../data_n1/spdyn_sav_data_1sec/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn_1sec.sav'
+		restore,'../../data_n1/spdyn_sav_data_1sec/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn_1sec'+version_name+'.sav'
 		print, '# Data Day '+strtrim(long(yyyyddd),2)+' restored #'
 		t2=aj_t16(yyyyddd+t/24/60./60.)
 	endelse
 	
 
 	;# background substraction
-	restore,'./background/background_ALLPJ_z'+data_type_treat+'.sav'
 	if keyword_set(linear) then $
-		zlin_new = zlin[*,16:125] $
+		zlin_new = zlin[*,channelbeg:channelend] $
 	else if keyword_set(db) then $
-		zlin_new = 10^((zdb[*,16:125]*10.+min(rdb))/10.)
+		zlin_new = 10^((zdb[*,channelbeg:channelend]*10.+min(rdb))/10.)
+
 	SUBTRACT_BACKGROUND,background,sigma,0,zlin_new
+
 	print,'# Background subtracted #'
-	f=f[16:125]
+	f=f[channelbeg:channelend]
 	nchannels=n_elements(f)
 
 	;# applying calibration gain
@@ -112,14 +141,19 @@ for k=0L,nd-1L do begin
 	if keyword_Set(norm1AU) then tit1AU='_norm1AU' else tit1AU=''
 	if keyword_Set(reso1sec) then tit1sec='_1sec' else tit1sec=''
 
-
-	filename = '../../data_n2/spdyn_sav_data_calibrated'+tit1AU+'/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn'+tit1AU+tit1sec+'_'+data_type_treat+version_name+'.sav'
+	filename = '../../data_n2/spdyn_sav_data'+tit1AU+version_name+'/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn'+tit1AU+tit1sec+'_'+data_type_treat+version_name+'.sav'
 
 	
 	save,filename=filename,yyyyddd,t,f,zlincal
 	print,'# Day '+strtrim(long(yyyyddd),2)+' calibrated and saved #'
+
+
+	cmd = "python make_cdf_juno_waves_calibrated.py -i "+filename+" -data_version "+strtrim(version,2);#+" -v"
+	spawn,cmd,resu
+	print,resu
+
 	
-	suite:
-		if ~file_test('../../data_n1/spdyn_sav_data/'+strmid(strtrim(long(yyyyddd),2),0,4)+'/'+strtrim(long(yyyyddd),2)+'_spdyn.sav') then print,'# No data for Day '+strtrim(long(yyyyddd),2)
+
+suite:	if skip eq 1 then print,'# No data for Day '+strtrim(long(yyyyddd),2) +' in version '+version_name+' #' 
 endfor
 END
