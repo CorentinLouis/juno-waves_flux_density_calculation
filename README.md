@@ -1,4 +1,5 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10033589.svg)](https://doi.org/10.5281/zenodo.10033589)
 
 # juno-waves_flux_density_calculation
 Routines for calculating the Juno/Waves flux density
